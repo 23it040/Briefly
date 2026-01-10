@@ -140,6 +140,34 @@ class APIClient {
             method: 'DELETE',
         });
     }
+
+    // Meeting Processing
+    async processMeeting(platform: string, meetingId: string, title?: string) {
+        return this.request(`/meetings/${platform}/${meetingId}/process`, {
+            method: 'POST',
+            body: JSON.stringify({ title }),
+        });
+    }
+
+    async getMeetingSummary(platform: string, meetingId: string) {
+        return this.request(`/meetings/${platform}/${meetingId}/summary`);
+    }
+
+    async getActionItems(platform: string, meetingId: string) {
+        return this.request(`/meetings/${platform}/${meetingId}/action-items`);
+    }
+
+    async getParticipants(platform: string, meetingId: string) {
+        return this.request(`/meetings/${platform}/${meetingId}/participants`);
+    }
+
+    async getEmotions(platform: string, meetingId: string) {
+        return this.request(`/meetings/${platform}/${meetingId}/emotions`);
+    }
+
+    async getMeetingStatus(platform: string, meetingId: string) {
+        return this.request(`/meetings/${platform}/${meetingId}/status`);
+    }
 }
 
 export const apiClient = new APIClient();
