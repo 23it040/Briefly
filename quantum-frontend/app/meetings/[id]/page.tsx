@@ -20,7 +20,6 @@ import {
     CheckCircle2,
     AlertCircle,
     Download,
-    Share2,
     ArrowLeft,
     RefreshCw,
     Radio,
@@ -199,10 +198,6 @@ export default function MeetingPage({ params }: { params: { id: string } }) {
                             </div>
                         </div>
                         <div className="flex gap-2">
-                            <Button variant="outline">
-                                <Share2 className="h-4 w-4 mr-2" />
-                                Share
-                            </Button>
                             <Button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
                                 <Download className="h-4 w-4 mr-2" />
                                 Export
