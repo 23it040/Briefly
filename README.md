@@ -275,6 +275,6 @@ Built for MSBC Hackathon 2026.
 
 ---
 
-**Built with ❤️ for the MSBC Hackathon**
+**From the InnovAItion Hackathon**
 
 For questions or demo requests, please contact the development team.
