@@ -386,10 +386,9 @@ async def analyze_video_emotions(
         
         # Save uploaded file to temporary location
         video_path = None
-        try:
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as tmp_file:
-                tmp_file.write(content)
-                video_path = tmp_file.name
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as tmp_file:
+            tmp_file.write(content)
+            video_path = tmp_file.name
         
         try:
             # Import emotion analyzer
@@ -401,7 +400,7 @@ async def analyze_video_emotions(
             logger.info("Starting video emotion analysis...")
             summary = analyze_meeting_video(
                 video_path=video_path,
-                output_path=None,  # Don't save annotated video for API
+                output_path=None, 
                 model_path=MODEL_PATH,
                 model_type=MODEL_TYPE_PROD
             )

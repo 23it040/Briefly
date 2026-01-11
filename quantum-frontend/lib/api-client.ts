@@ -31,9 +31,9 @@ class APIClient {
     }
 
     private async request(endpoint: string, options: RequestInit = {}) {
-        const headers: HeadersInit = {
+        const headers: Record<string, string> = {
             'Content-Type': 'application/json',
-            ...options.headers,
+            ...(options.headers as Record<string, string> || {}),
         };
 
         if (this.token) {
@@ -169,7 +169,42 @@ class APIClient {
         return this.request(`/meetings/${platform}/${meetingId}/status`);
     }
 
+    async checkBackendConnection(): Promise<boolean> {
+        try {
+            // Try connecting to health endpoint without /api prefix
+            const healthUrl = this.baseURL.replace('/api', '') + '/health';
+            console.log('Checking backend connection at:', healthUrl);
+            
+            const response = await fetch(healthUrl, {
+                method: 'GET',
+                mode: 'cors', // Explicitly allow CORS
+                cache: 'no-cache',
+            });
+            
+            console.log('Health check response:', response.status, response.statusText);
+            return response.ok;
+        } catch (error: any) {
+            console.error('Backend connection check failed:', error);
+            console.error('Error details:', {
+                message: error.message,
+                name: error.name,
+                stack: error.stack,
+            });
+            return false;
+        }
+    }
+
     async analyzeVideoEmotions(file: File, meetingId?: string) {
+        // First check if backend is reachable
+        const isBackendRunning = await this.checkBackendConnection();
+        if (!isBackendRunning) {
+            throw new Error(
+                `Cannot connect to backend server at ${this.baseURL.replace('/api', '')}. ` +
+                `Please ensure the backend is running on port 8000. ` +
+                `Run: cd quantum-backend && python main.py`
+            );
+        }
+
         const formData = new FormData();
         formData.append('file', file);
         if (meetingId) {
@@ -183,12 +218,18 @@ class APIClient {
         }
         // Explicitly do NOT set Content-Type - let browser handle it
 
+        const endpoint = `${this.baseURL}/meetings/analyze-video-emotions`;
+        console.log('Uploading to:', endpoint);
+        console.log('File:', file.name, 'Size:', (file.size / 1024 / 1024).toFixed(2), 'MB');
+
         try {
-            const response = await fetch(`${this.baseURL}/meetings/analyze-video-emotions`, {
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 headers,
                 body: formData,
             });
+
+            console.log('Response status:', response.status, response.statusText);
 
             if (!response.ok) {
                 let errorMessage = 'Request failed';
@@ -207,11 +248,21 @@ class APIClient {
                 throw new Error(errorMessage);
             }
 
-            return response.json();
+            const result = await response.json();
+            console.log('Video analysis successful:', result);
+            return result;
         } catch (error: any) {
+            console.error('Video upload error:', error);
             // Handle network errors
-            if (error instanceof TypeError && error.message.includes('fetch')) {
-                throw new Error('Network error: Unable to connect to server. Please check if the backend is running.');
+            if (error instanceof TypeError && (error.message.includes('fetch') || error.message.includes('Failed to fetch'))) {
+                throw new Error(
+                    `Network error: Cannot connect to backend at ${this.baseURL}. ` +
+                    `Please check:\n` +
+                    `1. Backend server is running (python main.py in quantum-backend directory)\n` +
+                    `2. Backend is accessible at http://localhost:8000\n` +
+                    `3. No firewall is blocking the connection\n` +
+                    `4. Check browser console for CORS errors`
+                );
             }
             throw error;
         }

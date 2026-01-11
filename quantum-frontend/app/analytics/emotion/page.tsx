@@ -39,8 +39,23 @@ function EmotionAnalyticsContent() {
     const [uploading, setUploading] = useState(false);
     const [videoAnalysisData, setVideoAnalysisData] = useState<any>(null);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [backendConnected, setBackendConnected] = useState<boolean | null>(null);
 
     useEffect(() => {
+        // Check backend connection on mount
+        const checkConnection = async () => {
+            try {
+                const connected = await apiClient.checkBackendConnection();
+                setBackendConnected(connected);
+                if (!connected) {
+                    toast.error("Backend server is not running. Please start it with: cd quantum-backend && python main.py");
+                }
+            } catch (error) {
+                setBackendConnected(false);
+            }
+        };
+        checkConnection();
+
         if (meetingId) {
             // Check for stored summary from sessionStorage
             const storedSummary = sessionStorage.getItem(`emotion_summary_${meetingId}`);
@@ -116,6 +131,8 @@ function EmotionAnalyticsContent() {
 
         try {
             console.log("Uploading video file:", file.name, "Size:", (file.size / 1024 / 1024).toFixed(2), "MB");
+            console.log("API Base URL:", process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api');
+            
             const result = await apiClient.analyzeVideoEmotions(file, meetingId || undefined);
             
             if (result.success) {
@@ -129,7 +146,18 @@ function EmotionAnalyticsContent() {
         } catch (error: any) {
             console.error("Failed to analyze video:", error);
             const errorMessage = error.message || "Failed to analyze video. Please check if the backend server is running.";
-            toast.error(errorMessage);
+            
+            // Show detailed error in toast
+            toast.error(errorMessage, {
+                duration: 10000, // Show for 10 seconds
+            });
+            
+            // Also log to console for debugging
+            console.error("Full error details:", {
+                message: error.message,
+                stack: error.stack,
+                name: error.name,
+            });
         } finally {
             setUploading(false);
         }
@@ -244,13 +272,13 @@ function EmotionAnalyticsContent() {
                                 onChange={handleVideoUpload}
                                 className="hidden"
                                 id="video-upload"
-                                disabled={uploading}
+                                disabled={uploading || backendConnected === false}
                             />
                             <Button
                                 variant="outline"
                                 onClick={() => document.getElementById('video-upload')?.click()}
-                                disabled={uploading}
-                                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0"
+                                disabled={uploading || backendConnected === false}
+                                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0 disabled:opacity-50"
                             >
                                 {uploading ? (
                                     <>
@@ -269,6 +297,16 @@ function EmotionAnalyticsContent() {
                             <span className="text-sm text-muted-foreground">
                                 {selectedFile.name}
                             </span>
+                        )}
+                        {backendConnected === false && (
+                            <Badge variant="destructive" className="ml-2">
+                                Backend Offline
+                            </Badge>
+                        )}
+                        {backendConnected === true && (
+                            <Badge variant="outline" className="ml-2 bg-green-500/10 text-green-600 border-green-500/20">
+                                Backend Connected
+                            </Badge>
                         )}
                     </div>
                 </div>
